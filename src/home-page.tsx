@@ -1,24 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, TouchableHighlight, Image, Modal, Text } from "react-native";
-import { Card } from 'react-native-elements'
+import { View, StyleSheet, TouchableHighlight, Image, Text, TextInput } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import * as Location from "expo-location";
-import CameraComponent from "./camera-page";
+import {  Input, Button, Card } from "react-native-elements";
+import MarkerEntity from "../marker-entity";
+
+
 
 export default function HomePage() {
-
   const [initialRegion, setInitialRegion] = useState(null);
-  const navigation = useNavigation(); // Obter o objeto de navegação
+  const navigation = useNavigation();
   const [capturedPhoto, setCapturedPhoto] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState(null);
-
-
-  const onPhotoCaptured = (photo) => {
-    setCapturedPhoto(photo);
-  };
+  const [descriptionInput, setDescriptionInput] = useState("");
+  const [markers, setMarkers] = useState([]);
 
   useEffect(() => {
     getCurrentLocation();
@@ -32,129 +29,87 @@ export default function HomePage() {
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
-      setInitialRegion({
-        latitude,
-        longitude,
-        latitudeDelta: 0.1,
-        longitudeDelta: 0.1,
-      });
+      const { coords } = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = coords;
+      setInitialRegion({ latitude, longitude, latitudeDelta: 0.1, longitudeDelta: 0.1 });
     } catch (error) {
       console.log("Error getting current location:", error);
     }
   };
 
   const handleCameraButtonClick = () => {
-    navigation.navigate('CameraComponent');
+    navigation.navigate("CameraComponent", {
+      onPhotoCaptured: (photo, markerProps) => onPhotoCaptured(photo, markerProps),
+    });
   };
 
+  const onPhotoCaptured = (photo, markerProps) => {
+    setCapturedPhoto(photo);
+    const newMarker = new MarkerEntity();
+    newMarker.id = markers.length + 1;
+    newMarker.image = markerProps.imageUri;
+    newMarker.latitude = markerProps.latitude;
+    newMarker.longitude = markerProps.longitude;
+    newMarker.description = "";
+    setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
+    setSelectedMarker(newMarker);
+  };
+
+  const handleMarkerClick = (marker) => {
+    setSelectedMarker(marker);
+  };
+
+  const handleDescriptionChange = (text) => {
+    setDescriptionInput(text);
+    setSelectedMarker((prevMarker) => ({
+      ...prevMarker,
+      description: text,
+    }));
+  };
+
+  const handleSaveDescription = () => {
+    // Save the description
+    // You can add your logic here to save the description to a database or perform any other operations
+    setDescriptionInput("");
+    setSelectedMarker(null);
+  };
+
+  const renderMarker = (marker) => (
+    <Marker
+      key={marker.id}
+      description={marker.description}
+      coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
+      onPress={() => handleMarkerClick(marker)}
+    >
+      <View style={styles.marker}>
+        <Image style={styles.markerImage} source={{ uri: marker.image }} />
+      </View>
+    </Marker>
+  );
+
+  const renderCard = () => (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>{selectedMarker?.description}</Text>
+      <Image style={styles.cardImage} source={{ uri: selectedMarker?.image }} />
+      <View style={styles.inputContainer}>
+        <Text>Add a description:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Add a description"
+          value={descriptionInput}
+          onChangeText={handleDescriptionChange}
+        />
+      </View>
+      <TouchableHighlight onPress={handleSaveDescription} style={styles.button}>
+        <Text style={styles.buttonText}>Save</Text>
+      </TouchableHighlight>
+    </View>
+  );
   return (
     <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: -22.12229741001421,
-          longitude: -43.209825170583635,
-          latitudeDelta: 0.1,
-          longitudeDelta: 0.1,
-        }}
-      >
-        <Marker
-          description="Primeiro ponto"
-          coordinate={{
-            latitude: -22.15867,
-            longitude: -43.20917,
-          }}
-        />
-
-        <Marker
-          description="Igreja Sao Sebastião"
-          coordinate={{
-            latitude: -22.1166235,
-            longitude: -43.2099970,
-          }} onPress={() => {
-            setSelectedMarker({
-              description: "Igreja Sao Sebastião",
-              imageUri:
-                "https://upload.wikimedia.org/wikipedia/commons/a/a8/Igreja_de_S%C3%A3o_Sebasti%C3%A3o.jpg",
-            });
-            setModalVisible(true);
-          }}
-        >
-          <View style={styles.marker}>
-            <Image style={styles.markerImage}
-              source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/a/a8/Igreja_de_S%C3%A3o_Sebasti%C3%A3o.jpg' }}
-            />
-          </View>
-        </Marker>
-
-        <Marker
-          description="Encontro dos Três Rios"
-          coordinate={{
-            latitude: -22.1283667,
-            longitude: -43.135968,
-          }}>
-          <View style={styles.marker}>
-            <Image style={styles.markerImage}
-              source={{ uri: 'https://www.cachoeirasparaibadosul.net/uploads/1/2/5/0/125038699/published/foto-oficial-sugest-o-allan.jpg?1604972208' }}
-            />
-          </View>
-        </Marker>
-        <Marker
-          description="Casa de Pedra"
-          coordinate={{
-            latitude: -22.115486663984644,
-            longitude: -43.204658711350625,
-          }}>
-          <View style={styles.marker}>
-            <Image style={styles.markerImage}
-              source={{ uri: 'https://lh5.googleusercontent.com/p/AF1QipMbVLmWcbMs9iqX3WyvjkPG_j42HlWhmybMOh2C=w426-h240-k-no' }}
-            />
-
-          </View>
-        </Marker>
-        <Marker
-          description="Ponte das Garças"
-          coordinate={{
-            latitude: -22.12006818802773,
-            longitude: -43.165348303148304
-          }}>
-          <View style={styles.marker}>
-            <Image style={styles.markerImage}
-              source={{ uri: 'https://lh5.googleusercontent.com/p/AF1QipOCMPmqFbMxHFQQ5ydqzOAqR94VQ_6WrkWcilMd=w426-h240-k-no' }}
-            />
-
-          </View>
-        </Marker>
-
+      <MapView style={styles.map} initialRegion={initialRegion}>
+        {markers.map(renderMarker)}
       </MapView>
-      <Card>
-        <Card.Title>Modal Card</Card.Title>
-        <Card.Divider />
-        <View style={styles.modalContainer}>
-          {selectedMarker && (
-            <>
-              <Image
-                style={styles.modalImage}
-                source={{ uri: selectedMarker.imageUri }}
-              />
-              <Text style={styles.modalDescription}>
-                {selectedMarker.description}
-              </Text>
-            </>
-          )}
-          <TouchableHighlight
-            onPress={() => setModalVisible(false)}
-            style={styles.closeButton}
-          >
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableHighlight>
-        </View>
-      </Card>
-
-
-
       <View style={styles.buttonContainer}>
         <TouchableHighlight
           onPress={handleCameraButtonClick}
@@ -165,9 +120,12 @@ export default function HomePage() {
           <Feather name="camera" size={24} color="#009688" />
         </TouchableHighlight>
       </View>
+
+      {selectedMarker && renderCard()}
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -228,5 +186,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
   },
-
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 16,
+    margin: 16,
+    elevation: 4,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  cardImage: {
+    width: '100%',
+    height: 200,
+    marginBottom: 12,
+    borderRadius: 10,
+  },
+  inputContainer: {
+    marginBottom: 12,
+  },
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 8,
+  },
+  
+  buttonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
 });
+
+
