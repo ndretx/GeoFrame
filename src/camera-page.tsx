@@ -5,7 +5,7 @@ import { Camera } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
 import MapView, { Marker } from "react-native-maps";
 
-export default function CameraComponent({ onPhotoCaptured }) {
+export default function CameraComponent({ onPhotoCaptured, navigation }) {
   const cameraRef = useRef(null);
   const [hasPermission, setHasPermission] = useState(null);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
@@ -35,6 +35,7 @@ export default function CameraComponent({ onPhotoCaptured }) {
       }
     } catch (error) {
       console.log("Error saving photo to gallery:", error);
+      //navigation.goBack('HomePage');
     }
   };
 
