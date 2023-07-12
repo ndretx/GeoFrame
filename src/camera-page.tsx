@@ -1,25 +1,22 @@
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import { TouchableOpacity, View, StyleSheet, Image } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
-import MapView, { Marker } from "react-native-maps";
 
-export default function CameraComponent({ onPhotoCaptured, navigation }) {
+export default function CameraComponent({ route, navigation }) {
+  const { onPhotoCaptured } = route.params;
   const cameraRef = useRef(null);
-  const [hasPermission, setHasPermission] = useState(null);
-  const [capturedPhoto, setCapturedPhoto] = useState(null);
 
   const handleCameraButtonClick = async () => {
     if (cameraRef.current) {
       const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === "granted");
 
       if (status === "granted") {
         const photo = await cameraRef.current.takePictureAsync();
-        setCapturedPhoto(photo);
         savePhotoToGallery(photo);
-        onPhotoCaptured(photo.coords);
+        onPhotoCaptured(photo);
+        navigation.goBack();
       }
     }
   };
@@ -35,7 +32,6 @@ export default function CameraComponent({ onPhotoCaptured, navigation }) {
       }
     } catch (error) {
       console.log("Error saving photo to gallery:", error);
-      //navigation.goBack('HomePage');
     }
   };
 
@@ -51,18 +47,6 @@ export default function CameraComponent({ onPhotoCaptured, navigation }) {
           </TouchableOpacity>
         </View>
       </Camera>
-      {capturedPhoto && (
-        <MapView style={styles.map}>
-          <Marker coordinate={capturedPhoto.coords}>
-            <View style={styles.markerContainer}>
-              <Image
-                source={{ uri: capturedPhoto.uri }}
-                style={styles.markerImage}
-              />
-            </View>
-          </Marker>
-        </MapView>
-      )}
     </View>
   );
 }
@@ -88,18 +72,5 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     width: 100,
     height: 100,
-  },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  markerContainer: {
-    backgroundColor: "white",
-    borderRadius: 50,
-    padding: 5,
-  },
-  markerImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 50,
   },
 });
