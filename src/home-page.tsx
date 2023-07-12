@@ -4,10 +4,7 @@ import MapView, { Marker } from "react-native-maps";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import * as Location from "expo-location";
-import {  Input, Button, Card } from "react-native-elements";
 import MarkerEntity from "../marker-entity";
-
-
 
 export default function HomePage() {
   const [initialRegion, setInitialRegion] = useState(null);
@@ -38,18 +35,21 @@ export default function HomePage() {
   };
 
   const handleCameraButtonClick = () => {
-    navigation.navigate("CameraComponent", {
-      onPhotoCaptured: (photo, markerProps) => onPhotoCaptured(photo, markerProps),
+    navigation.navigate('CameraComponent', {
+      onPhotoCaptured: (coords) => {
+        // Handle photo captured event
+        // Update the necessary state or perform any other actions
+      },
     });
   };
 
-  const onPhotoCaptured = (photo, markerProps) => {
+  const onPhotoCaptured = (photo, coords) => {
     setCapturedPhoto(photo);
     const newMarker = new MarkerEntity();
     newMarker.id = markers.length + 1;
-    newMarker.image = markerProps.imageUri;
-    newMarker.latitude = markerProps.latitude;
-    newMarker.longitude = markerProps.longitude;
+    newMarker.image = photo.uri;
+    newMarker.latitude = coords.latitude;
+    newMarker.longitude = coords.longitude;
     newMarker.description = "";
     setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
     setSelectedMarker(newMarker);
@@ -105,11 +105,14 @@ export default function HomePage() {
       </TouchableHighlight>
     </View>
   );
+
   return (
     <View style={styles.container}>
-      <MapView style={styles.map} initialRegion={initialRegion}>
-        {markers.map(renderMarker)}
-      </MapView>
+      {initialRegion && (
+        <MapView style={styles.map} initialRegion={initialRegion}>
+          {markers.map(renderMarker)}
+        </MapView>
+      )}
       <View style={styles.buttonContainer}>
         <TouchableHighlight
           onPress={handleCameraButtonClick}
@@ -125,7 +128,6 @@ export default function HomePage() {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -149,45 +151,15 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
   },
-
   markerImage: {
     width: 50,
     height: 50,
     borderRadius: 24,
-    borderColor: 'red',
+    borderColor: "red",
     borderWidth: 0.5,
-
-
-  },
-  modalContainer: {
-    width: 'auto',
-    height: '50%',
-    alignItems: "center",
-    backgroundColor: "#000000aa",
-  },
-  modalImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  modalDescription: {
-    fontSize: 16,
-    color: "#fff",
-    marginBottom: 10,
-  },
-  closeButton: {
-    backgroundColor: "#009688",
-    padding: 10,
-    borderRadius: 5,
-  },
-  closeButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    textAlign: "center",
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 10,
     padding: 16,
     margin: 16,
@@ -195,11 +167,11 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 12,
   },
   cardImage: {
-    width: '100%',
+    width: "100%",
     height: 200,
     marginBottom: 12,
     borderRadius: 10,
@@ -209,17 +181,14 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 40,
-    borderColor: 'gray',
+    borderColor: "gray",
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 8,
   },
-  
   buttonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: 'bold',
+    color: "#fff",
+    textAlign: "center",
+    fontWeight: "bold",
   },
 });
-
-
