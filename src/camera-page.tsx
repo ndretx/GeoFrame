@@ -2,7 +2,6 @@ import React, { useRef } from "react";
 import { TouchableOpacity, View, StyleSheet, Image } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
-import * as MediaLibrary from "expo-media-library";
 
 export default function CameraComponent({ route, navigation }) {
   const { onPhotoCaptured } = route.params;
@@ -14,24 +13,9 @@ export default function CameraComponent({ route, navigation }) {
 
       if (status === "granted") {
         const photo = await cameraRef.current.takePictureAsync();
-        savePhotoToGallery(photo);
         onPhotoCaptured(photo);
         navigation.goBack();
       }
-    }
-  };
-
-  const savePhotoToGallery = async (photo) => {
-    try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status === "granted") {
-        await MediaLibrary.saveToLibraryAsync(photo.uri);
-        console.log("Photo saved to gallery successfully!");
-      } else {
-        console.log("Permission denied to save photo to gallery");
-      }
-    } catch (error) {
-      console.log("Error saving photo to gallery:", error);
     }
   };
 
