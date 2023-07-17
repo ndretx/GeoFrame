@@ -1,18 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { View, StyleSheet, TouchableHighlight, Image, Text, TextInput } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import { Feather } from "@expo/vector-icons";
+import { Feather, EvilIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import * as Location from "expo-location";
+import { FontAwesome5 } from '@expo/vector-icons'; 
 
-export default function HomePage ()  {
+export default function HomePage() {
   const [initialRegion, setInitialRegion] = useState(null);
-  const [capturedPhoto, setCapturedPhoto] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [descriptionInput, setDescriptionInput] = useState("");
   const [markers, setMarkers] = useState([]);
+  const [showDetailsCard, setShowDetailsCard] = useState(false);
+
 
   const navigation = useNavigation();
+  const cameraRef = useRef(null);
+  const mapRef = useRef(null);
+  const [zoomLevel, setZoomLevel] = useState(0);
 
   useEffect(() => {
     getCurrentLocation();
@@ -28,16 +33,36 @@ export default function HomePage ()  {
 
       const { coords } = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = coords;
+
       setInitialRegion({ latitude, longitude, latitudeDelta: 0.1, longitudeDelta: 0.1 });
+
+      // Optionally, you can also create a marker for the user's location
+      const userMarker = {
+        id: 0,
+        image: null,
+        latitude,
+        longitude,
+        description: "User's Location",
+      };
+      setMarkers([userMarker]);
+      setSelectedMarker(userMarker);
+
     } catch (error) {
       console.log("Error getting current location:", error);
     }
   };
 
-  const handleCameraButtonClick = () => {
-    navigation.navigate('CameraComponent', {
-      onPhotoCaptured: onPhotoCaptured,
-    });
+  const handleCameraButtonClick = async () => {
+    if (cameraRef.current) {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status === "granted") {
+        const photo = await cameraRef.current.takePictureAsync();
+        // Assuming you have access to the coordinates here (replace with actual coordinates)
+        const coords = { latitude: 0, longitude: 0 };
+        onPhotoCaptured(photo, coords);
+      }
+    }
   };
 
   const onPhotoCaptured = (photo, coords) => {
@@ -51,8 +76,17 @@ export default function HomePage ()  {
 
     setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
     setSelectedMarker(newMarker);
-    setCapturedPhoto(photo);
+    setShowDetailsCard(true);
   };
+
+  // Update the zoomLevel state whenever the region changes
+  const handleRegionChangeComplete = useCallback((region) => {
+    if (mapRef.current) {
+      mapRef.current.getCamera().then((camera) => {
+        setZoomLevel(camera.zoom);
+      });
+    }
+  }, []);
 
   const handleMarkerClick = (marker) => {
     setSelectedMarker(marker);
@@ -71,11 +105,18 @@ export default function HomePage ()  {
     // You can add your logic here to save the description to a database or perform any other operations
     setDescriptionInput("");
     setSelectedMarker(null);
+    setShowDetailsCard(false);
   };
 
   const renderMarker = (marker) => {
     const isSelectedMarker = selectedMarker?.id === marker.id;
-    const markerImageSource = isSelectedMarker ? capturedPhoto?.uri : marker.image;
+
+    // Use a custom icon for the user marker and the default marker icon for others
+    const markerIcon = marker.id === 0 ? (
+      <FontAwesome5 name="map-marker-alt"size={24 + zoomLevel * 2} color="red" />
+    ) : (
+      <FontAwesome5 name="map-marker-alt" size={24} color="black" />
+    );
 
     return (
       <Marker
@@ -84,9 +125,7 @@ export default function HomePage ()  {
         coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
         onPress={() => handleMarkerClick(marker)}
       >
-        <View style={styles.marker}>
-          <Image style={styles.markerImage} source={{ uri: markerImageSource }} />
-        </View>
+        {markerIcon}
       </Marker>
     );
   };
@@ -113,7 +152,12 @@ export default function HomePage ()  {
   return (
     <View style={styles.container}>
       {initialRegion && (
-        <MapView style={styles.map} initialRegion={initialRegion}>
+        <MapView
+          style={styles.map}
+          initialRegion={initialRegion}
+          ref={mapRef}
+          onRegionChangeComplete={handleRegionChangeComplete}
+        >
           {markers.map(renderMarker)}
         </MapView>
       )}
@@ -128,10 +172,10 @@ export default function HomePage ()  {
         </TouchableHighlight>
       </View>
 
-      {selectedMarker && renderCard()}
+      {showDetailsCard && selectedMarker && renderCard()}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -150,17 +194,6 @@ const styles = StyleSheet.create({
   button: {
     borderRadius: 24,
     padding: 8,
-  },
-  marker: {
-    width: 100,
-    height: 100,
-  },
-  markerImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 24,
-    borderColor: "red",
-    borderWidth: 0.5,
   },
   card: {
     backgroundColor: "#fff",
@@ -196,5 +229,3 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
-
-

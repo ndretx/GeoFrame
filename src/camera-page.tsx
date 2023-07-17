@@ -3,8 +3,7 @@ import { TouchableOpacity, View, StyleSheet, Image } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
 
-// Adicione os parâmetros que a função espera receber
-export default function CameraComponent({ route, navigation, onPhotoCaptured }) {
+export default function CameraComponent({ route, navigation }) {
   const cameraRef = useRef(null);
 
   const handleCameraButtonClick = async () => {
@@ -15,8 +14,12 @@ export default function CameraComponent({ route, navigation, onPhotoCaptured }) 
         const photo = await cameraRef.current.takePictureAsync();
         // Supondo que você tenha acesso às coordenadas aqui (substitua com as coordenadas reais)
         const coords = { latitude: 0, longitude: 0 };
-        onPhotoCaptured(photo, coords);
-        navigation.goBack();
+
+        // Navega de volta para a tela HomePage com os dados da foto e coordenadas como parâmetros
+        navigation.navigate('HomePage', {
+          photo: photo,
+          coords: coords,
+        });
       }
     }
   };
