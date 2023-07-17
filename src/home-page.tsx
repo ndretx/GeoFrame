@@ -4,15 +4,15 @@ import MapView, { Marker } from "react-native-maps";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import * as Location from "expo-location";
-import MarkerEntity from "../marker-entity";
 
-export default function HomePage() {
+export default function HomePage ()  {
   const [initialRegion, setInitialRegion] = useState(null);
-  const navigation = useNavigation();
   const [capturedPhoto, setCapturedPhoto] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [descriptionInput, setDescriptionInput] = useState("");
   const [markers, setMarkers] = useState([]);
+
+  const navigation = useNavigation();
 
   useEffect(() => {
     getCurrentLocation();
@@ -36,23 +36,22 @@ export default function HomePage() {
 
   const handleCameraButtonClick = () => {
     navigation.navigate('CameraComponent', {
-      onPhotoCaptured: (coords) => {
-        // Handle photo captured event
-        // Update the necessary state or perform any other actions
-      },
+      onPhotoCaptured: onPhotoCaptured,
     });
   };
 
   const onPhotoCaptured = (photo, coords) => {
-    setCapturedPhoto(photo);
-    const newMarker = new MarkerEntity();
-    newMarker.id = markers.length + 1;
-    newMarker.image = photo.uri;
-    newMarker.latitude = coords.latitude;
-    newMarker.longitude = coords.longitude;
-    newMarker.description = "";
+    const newMarker = {
+      id: markers.length + 1,
+      image: photo.uri,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      description: "",
+    };
+
     setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
     setSelectedMarker(newMarker);
+    setCapturedPhoto(photo);
   };
 
   const handleMarkerClick = (marker) => {
@@ -74,18 +73,23 @@ export default function HomePage() {
     setSelectedMarker(null);
   };
 
-  const renderMarker = (marker) => (
-    <Marker
-      key={marker.id}
-      description={marker.description}
-      coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
-      onPress={() => handleMarkerClick(marker)}
-    >
-      <View style={styles.marker}>
-        <Image style={styles.markerImage} source={{ uri: marker.image }} />
-      </View>
-    </Marker>
-  );
+  const renderMarker = (marker) => {
+    const isSelectedMarker = selectedMarker?.id === marker.id;
+    const markerImageSource = isSelectedMarker ? capturedPhoto?.uri : marker.image;
+
+    return (
+      <Marker
+        key={marker.id}
+        description={marker.description}
+        coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
+        onPress={() => handleMarkerClick(marker)}
+      >
+        <View style={styles.marker}>
+          <Image style={styles.markerImage} source={{ uri: markerImageSource }} />
+        </View>
+      </Marker>
+    );
+  };
 
   const renderCard = () => (
     <View style={styles.card}>
@@ -127,7 +131,7 @@ export default function HomePage() {
       {selectedMarker && renderCard()}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -192,3 +196,5 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+
+
