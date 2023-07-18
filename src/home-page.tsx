@@ -8,11 +8,11 @@ import { FontAwesome5 } from '@expo/vector-icons';
 
 export default function HomePage() {
   const [initialRegion, setInitialRegion] = useState(null);
+  const [capturedPhoto, setCapturedPhoto] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [descriptionInput, setDescriptionInput] = useState("");
   const [markers, setMarkers] = useState([]);
   const [showDetailsCard, setShowDetailsCard] = useState(false);
-
 
   const navigation = useNavigation();
   const cameraRef = useRef(null);
@@ -52,17 +52,10 @@ export default function HomePage() {
     }
   };
 
-  const handleCameraButtonClick = async () => {
-    if (cameraRef.current) {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-
-      if (status === "granted") {
-        const photo = await cameraRef.current.takePictureAsync();
-        // Assuming you have access to the coordinates here (replace with actual coordinates)
-        const coords = { latitude: 0, longitude: 0 };
-        onPhotoCaptured(photo, coords);
-      }
-    }
+  const handleCameraButtonClick = () => {
+    navigation.navigate('CameraComponent', {
+      onPhotoCaptured: onPhotoCaptured,
+    });
   };
 
   const onPhotoCaptured = (photo, coords) => {
@@ -76,17 +69,9 @@ export default function HomePage() {
 
     setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
     setSelectedMarker(newMarker);
+    setCapturedPhoto(photo);
     setShowDetailsCard(true);
   };
-
-  // Update the zoomLevel state whenever the region changes
-  const handleRegionChangeComplete = useCallback((region) => {
-    if (mapRef.current) {
-      mapRef.current.getCamera().then((camera) => {
-        setZoomLevel(camera.zoom);
-      });
-    }
-  }, []);
 
   const handleMarkerClick = (marker) => {
     setSelectedMarker(marker);
@@ -108,14 +93,23 @@ export default function HomePage() {
     setShowDetailsCard(false);
   };
 
+  // Update the zoomLevel state whenever the region changes
+  const handleRegionChangeComplete = useCallback((region) => {
+    if (mapRef.current) {
+      mapRef.current.getCamera().then((camera) => {
+        setZoomLevel(camera.zoom);
+      });
+    }
+  }, []);
+
   const renderMarker = (marker) => {
     const isSelectedMarker = selectedMarker?.id === marker.id;
 
     // Use a custom icon for the user marker and the default marker icon for others
     const markerIcon = marker.id === 0 ? (
-      <FontAwesome5 name="map-marker-alt"size={24 + zoomLevel * 2} color="red" />
+      <FontAwesome5 name="map-marker-alt" size={24 + zoomLevel * 0.5} color="red" />
     ) : (
-      <FontAwesome5 name="map-marker-alt" size={24} color="black" />
+      <Feather name="map-pin" size={24} color="black" />
     );
 
     return (
@@ -227,5 +221,12 @@ const styles = StyleSheet.create({
     color: "#fff",
     textAlign: "center",
     fontWeight: "bold",
+  },
+  markerImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: "white",
   },
 });
