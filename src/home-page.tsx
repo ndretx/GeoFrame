@@ -23,7 +23,7 @@ export default function HomePage() {
     getCurrentLocation();
   }, []);
 
-  const getCurrentLocation = async () => {
+  const getCurrentLocation = useCallback(async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
@@ -50,15 +50,16 @@ export default function HomePage() {
     } catch (error) {
       console.log("Error getting current location:", error);
     }
-  };
+  }, []);
 
   const handleCameraButtonClick = () => {
+    // Passa apenas o ID do marcador selecionado para a tela da câmera
     navigation.navigate('CameraComponent', {
-      onPhotoCaptured: onPhotoCaptured,
+      selectedMarkerId: selectedMarker?.id,
     });
   };
 
-  const onPhotoCaptured = (photo, coords) => {
+  const onPhotoCaptured = (photo, coords, marker) => {
     const newMarker = {
       id: markers.length + 1,
       image: photo.uri,
@@ -109,7 +110,7 @@ export default function HomePage() {
     const markerIcon = marker.id === 0 ? (
       <FontAwesome5 name="map-marker-alt" size={24 + zoomLevel * 0.5} color="red" />
     ) : (
-      <Feather name="map-pin" size={24} color="black" />
+      <Feather name="map-pin"size={24 + zoomLevel * 0.5} color="black" />
     );
 
     return (
@@ -221,12 +222,5 @@ const styles = StyleSheet.create({
     color: "#fff",
     textAlign: "center",
     fontWeight: "bold",
-  },
-  markerImage: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 2,
-    borderColor: "white",
   },
 });
