@@ -12,7 +12,6 @@ export default function CameraComponent({ route, navigation }) {
 
       if (status === "granted") {
         const photo = await cameraRef.current.takePictureAsync();
-        // Supondo que você tenha acesso às coordenadas aqui (substitua com as coordenadas reais)
         const coords = { latitude: 0, longitude: 0 };
 
         // Navega de volta para a tela HomePage com os dados da foto e coordenadas como parâmetros

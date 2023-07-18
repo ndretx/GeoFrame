@@ -36,7 +36,7 @@ export default function HomePage() {
 
       setInitialRegion({ latitude, longitude, latitudeDelta: 0.1, longitudeDelta: 0.1 });
 
-      // Optionally, you can also create a marker for the user's location
+      
       const userMarker = {
         id: 0,
         image: null,
@@ -87,14 +87,13 @@ export default function HomePage() {
   };
 
   const handleSaveDescription = () => {
-    // Save the description
-    // You can add your logic here to save the description to a database or perform any other operations
+    //Reservado para gravar no banco de dados
     setDescriptionInput("");
     setSelectedMarker(null);
     setShowDetailsCard(false);
   };
 
-  // Update the zoomLevel state whenever the region changes
+  // Atualiza ZoomLevel
   const handleRegionChangeComplete = useCallback((region) => {
     if (mapRef.current) {
       mapRef.current.getCamera().then((camera) => {
@@ -105,14 +104,16 @@ export default function HomePage() {
 
   const renderMarker = (marker) => {
     const isSelectedMarker = selectedMarker?.id === marker.id;
-
-    // Use a custom icon for the user marker and the default marker icon for others
+  
     const markerIcon = marker.id === 0 ? (
       <FontAwesome5 name="map-marker-alt" size={24 + zoomLevel * 0.5} color="red" />
     ) : (
-      <Feather name="map-pin"size={24 + zoomLevel * 0.5} color="black" />
+      <View>
+        <Feather name="map-pin" size={24 + zoomLevel * 0.5} color="black" />
+        {marker.image && <Image style={styles.markerImage} source={{ uri: marker.image }} />}
+      </View>
     );
-
+  
     return (
       <Marker
         key={marker.id}
@@ -124,6 +125,7 @@ export default function HomePage() {
       </Marker>
     );
   };
+  
 
   const renderCard = () => (
     <View style={styles.card}>
@@ -223,4 +225,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "bold",
   },
+  markerImage: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderColor: "white",
+    borderWidth: 1,
+  },
 });
+
