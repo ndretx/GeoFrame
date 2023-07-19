@@ -1,26 +1,26 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { View, StyleSheet, TouchableHighlight, Image, Text, TextInput } from "react-native";
+import { View, StyleSheet, TouchableHighlight, Image, Text, TextInput, } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import { Feather, EvilIcons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import * as Location from "expo-location";
-import { FontAwesome5 } from '@expo/vector-icons'; 
+import { Feather, FontAwesome5 } from "@expo/vector-icons";
 
-export default function HomePage() {
+import * as Location from "expo-location";
+import * as MediaLibrary from "expo-media-library"
+
+
+export default function HomePage({ navigation }) {
   const [initialRegion, setInitialRegion] = useState(null);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [descriptionInput, setDescriptionInput] = useState("");
   const [markers, setMarkers] = useState([]);
   const [showDetailsCard, setShowDetailsCard] = useState(false);
-
-  const navigation = useNavigation();
-  const cameraRef = useRef(null);
+  const [location, setLocation] = useState<any>()
   const mapRef = useRef(null);
   const [zoomLevel, setZoomLevel] = useState(0);
 
-  useEffect(() => {
+  useEffect( () => {
     getCurrentLocation();
+    
   }, []);
 
   const getCurrentLocation = useCallback(async () => {
@@ -30,13 +30,17 @@ export default function HomePage() {
         console.log("Permission to access location was denied");
         return;
       }
-
       const { coords } = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = coords;
+      setLocation({ latitude: latitude, longitude: longitude })
 
-      setInitialRegion({ latitude, longitude, latitudeDelta: 0.1, longitudeDelta: 0.1 });
+      setInitialRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.1,
+        longitudeDelta: 0.1,
+      });
 
-      
       const userMarker = {
         id: 0,
         image: null,
@@ -46,20 +50,31 @@ export default function HomePage() {
       };
       setMarkers([userMarker]);
       setSelectedMarker(userMarker);
-
     } catch (error) {
       console.log("Error getting current location:", error);
     }
   }, []);
 
-  const handleCameraButtonClick = () => {
-    // Passa apenas o ID do marcador selecionado para a tela da câmera
-    navigation.navigate('CameraComponent', {
-      selectedMarkerId: selectedMarker?.id,
-    });
+  const handleCameraButtonClick = async (cameraRef) => {
+    console.log("chegou aqui")
+    await getCurrentLocation()
+    console.log(location)
+    const photo = await cameraRef.current.takePictureAsync();
+    await MediaLibrary.saveToLibraryAsync(photo.uri)
+
+    let markersLocal = markers
+    markersLocal.push({
+      id: Math.random(),
+      image: photo.uri,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      description: ""
+    })
+    setMarkers(markersLocal);
+    navigation.goBack()
   };
 
-  const onPhotoCaptured = (photo, coords, marker) => {
+  const onPhotoCaptured = (photo, coords, markers) => {
     const newMarker = {
       id: markers.length + 1,
       image: photo.uri,
@@ -76,6 +91,7 @@ export default function HomePage() {
 
   const handleMarkerClick = (marker) => {
     setSelectedMarker(marker);
+    setShowDetailsCard(true); 
   };
 
   const handleDescriptionChange = (text) => {
@@ -103,29 +119,34 @@ export default function HomePage() {
   }, []);
 
   const renderMarker = (marker) => {
+    console.log(selectedMarker)
     const isSelectedMarker = selectedMarker?.id === marker.id;
-  
-    const markerIcon = marker.id === 0 ? (
-      <FontAwesome5 name="map-marker-alt" size={24 + zoomLevel * 0.5} color="red" />
-    ) : (
-      <View>
-        <Feather name="map-pin" size={24 + zoomLevel * 0.5} color="black" />
-        {marker.image && <Image style={styles.markerImage} source={{ uri: marker.image }} />}
-      </View>
-    );
-  
+
+    const markerIcon =
+      marker.id === 0 ? (
+        <FontAwesome5 name="map-marker-alt" size={24 + zoomLevel * 0.5} color="red" />
+      ) : (
+        <View>
+          <Feather name="map-pin" size={24 + zoomLevel * 0.5} color="black" />
+          {marker.image && <Image style={styles.markerImage} source={{ uri: marker.image }} />}
+        </View>
+      );
+
     return (
+      
       <Marker
-        key={marker.id}
+      style={styles.markerPoint}        
+      key={marker.id}
         description={marker.description}
         coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
         onPress={() => handleMarkerClick(marker)}
       >
         {markerIcon}
       </Marker>
+      
+      
     );
   };
-  
 
   const renderCard = () => (
     <View style={styles.card}>
@@ -142,6 +163,9 @@ export default function HomePage() {
       </View>
       <TouchableHighlight onPress={handleSaveDescription} style={styles.button}>
         <Text style={styles.buttonText}>Save</Text>
+      </TouchableHighlight>
+      <TouchableHighlight onPress={handleSaveDescription} style={styles.button}>
+        <Text style={styles.buttonText}>Delete</Text>
       </TouchableHighlight>
     </View>
   );
@@ -160,7 +184,7 @@ export default function HomePage() {
       )}
       <View style={styles.buttonContainer}>
         <TouchableHighlight
-          onPress={handleCameraButtonClick}
+          onPress={() => { navigation.navigate('CameraComponent', { registrarLocal: (cameraRef) => handleCameraButtonClick(cameraRef) }) }}
           activeOpacity={0.5}
           underlayColor="#009688"
           style={styles.button}
@@ -181,6 +205,12 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
   },
+markerPoint:{
+  width: 100,
+  height: 100,
+  borderRadius: 50,
+},
+
   buttonContainer: {
     position: "absolute",
     bottom: 100,
@@ -221,7 +251,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   buttonText: {
-    color: "#fff",
+    color: "green",
     textAlign: "center",
     fontWeight: "bold",
   },
@@ -233,4 +263,3 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
 });
-
