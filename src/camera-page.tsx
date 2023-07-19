@@ -1,36 +1,29 @@
-import React, { useRef } from "react";
-import { TouchableOpacity, View, StyleSheet, Image } from "react-native";
+import React, { useRef, useEffect, useState } from "react";
+import { TouchableOpacity, View, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
+import * as MediaLibrary from "expo-media-library"
 
-export default function CameraComponent({ route, navigation }) {
+
+
+export default function CameraComponent({ route}) {
   const cameraRef = useRef(null);
 
-  const handleCameraButtonClick = async () => {
-    if (cameraRef.current) {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-
-      if (status === "granted") {
-        const photo = await cameraRef.current.takePictureAsync();
-        const coords = { latitude: 0, longitude: 0 };
-
-        // Navega de volta para a tela HomePage com os dados da foto e coordenadas como parâmetros
-        navigation.navigate('HomePage', {
-          photo: photo,
-          coords: coords,
-        });
-      }
-    }
-  };
+  useEffect(() => {
+    
+    MediaLibrary.requestPermissionsAsync()
+   
+  }, []);
 
   return (
     <View style={styles.container}>
       <Camera style={styles.camera} ref={cameraRef}>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleCameraButtonClick}
-          >
+          <TouchableOpacity style={styles.button} onPress={() => {
+            if (cameraRef.current) {
+              route.params.registrarLocal(cameraRef)
+            }
+          }}>
             <Feather name="camera" size={50} color="#009688" />
           </TouchableOpacity>
         </View>
@@ -41,6 +34,9 @@ export default function CameraComponent({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  map: {
     flex: 1,
   },
   camera: {

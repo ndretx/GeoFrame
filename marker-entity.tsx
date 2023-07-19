@@ -2,8 +2,8 @@ export default class MarkerEntity{
     
     id: number;
     image: string;
-    latitude: number;
-    longitude: number;
+    latitude: any;
+    longitude: any;
     description: string;
     
 }
