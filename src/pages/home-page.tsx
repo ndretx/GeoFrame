@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { View, StyleSheet, TouchableHighlight, Image, Text, TextInput, } from "react-native";
+import { View, StyleSheet, TouchableHighlight, Image, Text, TextInput } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
-
 import * as Location from "expo-location";
-import * as MediaLibrary from "expo-media-library"
+import * as MediaLibrary from "expo-media-library";
+import MarkerEntity from "../entity/marker-entity";
+import { db } from "../../firebase-config";
+import { onValue, ref } from "firebase/database";
 
 
 export default function HomePage({ navigation }) {
@@ -14,14 +16,20 @@ export default function HomePage({ navigation }) {
   const [descriptionInput, setDescriptionInput] = useState("");
   const [markers, setMarkers] = useState([]);
   const [showDetailsCard, setShowDetailsCard] = useState(false);
-  const [location, setLocation] = useState<any>()
+  const [location, setLocation] = useState(null);
   const mapRef = useRef(null);
   const [zoomLevel, setZoomLevel] = useState(0);
 
-  useEffect( () => {
+  useEffect(() => {
     getCurrentLocation();
-    
+    getPlaces();
   }, []);
+
+  async function getPlaces() {
+    return onValue(ref(db, '/places'), (snapshot) => {
+        console.log("dados do realtime", snapshot);
+    });
+  }
 
   const getCurrentLocation = useCallback(async () => {
     try {
@@ -32,7 +40,7 @@ export default function HomePage({ navigation }) {
       }
       const { coords } = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = coords;
-      setLocation({ latitude: latitude, longitude: longitude })
+      setLocation({ coords: { latitude, longitude } });
 
       setInitialRegion({
         latitude,
@@ -41,13 +49,12 @@ export default function HomePage({ navigation }) {
         longitudeDelta: 0.1,
       });
 
-      const userMarker = {
-        id: 0,
-        image: null,
-        latitude,
-        longitude,
-        description: "User's Location",
-      };
+      const userMarker = new MarkerEntity();
+      userMarker.id = "user_location";
+      userMarker.coords = { latitude, longitude };
+      userMarker.description = "User's Location";
+      userMarker.photoDate = Date.now().toString();
+
       setMarkers([userMarker]);
       setSelectedMarker(userMarker);
     } catch (error) {
@@ -56,42 +63,35 @@ export default function HomePage({ navigation }) {
   }, []);
 
   const handleCameraButtonClick = async (cameraRef) => {
-    console.log("chegou aqui")
-    await getCurrentLocation()
-    console.log(location)
-    const photo = await cameraRef.current.takePictureAsync();
-    await MediaLibrary.saveToLibraryAsync(photo.uri)
+    console.log("chegou aqui");
+    await getCurrentLocation();
+    console.log(location);
 
-    let markersLocal = markers
-    markersLocal.push({
-      id: Math.random(),
-      image: photo.uri,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      description: ""
-    })
-    setMarkers(markersLocal);
-    navigation.goBack()
-  };
+    if (location && location.coords) {
+      const { latitude, longitude } = location.coords;
+      const photo = await cameraRef.current.takePictureAsync();
+      await MediaLibrary.saveToLibraryAsync(photo.uri);
 
-  const onPhotoCaptured = (photo, coords, markers) => {
-    const newMarker = {
-      id: markers.length + 1,
-      image: photo.uri,
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-      description: "",
-    };
+      const newMarker = new MarkerEntity();
+      newMarker.id = `marker_${Math.random().toString()}`;
+      newMarker.imagePath = photo.uri;
+      newMarker.coords = { latitude, longitude };
+      newMarker.description = "";
+      newMarker.photoDate = Date.now().toString();
 
-    setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
-    setSelectedMarker(newMarker);
-    setCapturedPhoto(photo);
-    setShowDetailsCard(true);
+      setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
+      setSelectedMarker(newMarker);
+      setCapturedPhoto(photo);
+      setShowDetailsCard(true);
+      navigation.goBack();
+    } else {
+      console.log("Location not available.");
+    }
   };
 
   const handleMarkerClick = (marker) => {
     setSelectedMarker(marker);
-    setShowDetailsCard(true); 
+    setShowDetailsCard(true);
   };
 
   const handleDescriptionChange = (text) => {
@@ -103,10 +103,21 @@ export default function HomePage({ navigation }) {
   };
 
   const handleSaveDescription = () => {
-    //Reservado para gravar no banco de dados
+    // Reservado para gravar no banco de dados
     setDescriptionInput("");
     setSelectedMarker(null);
     setShowDetailsCard(false);
+  };
+
+  const handleDeleteDescription = () => {
+    // Reseta a descrição no estado do selectedMarker para uma string vazia (ou null)
+    setSelectedMarker((prevMarker) => ({
+      ...prevMarker,
+      description: "",
+    }));
+
+    // Lógica para persistir a exclusão no backend (se necessário)
+    // Aqui você pode fazer uma chamada para sua API de backend para atualizar o registro do selectedMarker no banco de dados.
   };
 
   // Atualiza ZoomLevel
@@ -119,39 +130,37 @@ export default function HomePage({ navigation }) {
   }, []);
 
   const renderMarker = (marker) => {
-    console.log(selectedMarker)
     const isSelectedMarker = selectedMarker?.id === marker.id;
 
     const markerIcon =
-      marker.id === 0 ? (
+      marker.id === "user_location" ? (
         <FontAwesome5 name="map-marker-alt" size={24 + zoomLevel * 0.5} color="red" />
       ) : (
         <View>
           <Feather name="map-pin" size={24 + zoomLevel * 0.5} color="black" />
-          {marker.image && <Image style={styles.markerImage} source={{ uri: marker.image }} />}
+          {marker.imagePath && <Image style={styles.markerImage} source={{ uri: marker.imagePath }} />}
         </View>
       );
 
     return (
-      
       <Marker
-      style={styles.markerPoint}        
-      key={marker.id}
+        key={marker.id}
         description={marker.description}
-        coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
+        coordinate={{
+          latitude: marker.coords.latitude,
+          longitude: marker.coords.longitude,
+        }}
         onPress={() => handleMarkerClick(marker)}
       >
         {markerIcon}
       </Marker>
-      
-      
     );
   };
 
   const renderCard = () => (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{selectedMarker?.description}</Text>
-      <Image style={styles.cardImage} source={{ uri: selectedMarker?.image }} />
+      <Image style={styles.cardImage} source={{ uri: selectedMarker?.imagePath }} />
       <View style={styles.inputContainer}>
         <Text>Add a description:</Text>
         <TextInput
@@ -164,7 +173,7 @@ export default function HomePage({ navigation }) {
       <TouchableHighlight onPress={handleSaveDescription} style={styles.button}>
         <Text style={styles.buttonText}>Save</Text>
       </TouchableHighlight>
-      <TouchableHighlight onPress={handleSaveDescription} style={styles.button}>
+      <TouchableHighlight onPress={handleDeleteDescription} style={styles.button}>
         <Text style={styles.buttonText}>Delete</Text>
       </TouchableHighlight>
     </View>
@@ -184,7 +193,11 @@ export default function HomePage({ navigation }) {
       )}
       <View style={styles.buttonContainer}>
         <TouchableHighlight
-          onPress={() => { navigation.navigate('CameraComponent', { registrarLocal: (cameraRef) => handleCameraButtonClick(cameraRef) }) }}
+          onPress={() => {
+            navigation.navigate("CameraComponent", {
+              registrarLocal: (cameraRef) => handleCameraButtonClick(cameraRef),
+            });
+          }}
           activeOpacity={0.5}
           underlayColor="#009688"
           style={styles.button}
@@ -197,7 +210,6 @@ export default function HomePage({ navigation }) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
@@ -205,11 +217,11 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
   },
-markerPoint:{
-  width: 100,
-  height: 100,
-  borderRadius: 50,
-},
+  markerPoint: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
 
   buttonContainer: {
     position: "absolute",

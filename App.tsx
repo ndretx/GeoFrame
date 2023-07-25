@@ -1,9 +1,10 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { NavigationContainer } from "@react-navigation/native";
-import CameraComponent from './src/camera-page';
+import CameraComponent from './src/pages/camera-page';
 import { createStackNavigator } from "@react-navigation/stack";
-import HomePage from './src/home-page';
+import HomePage from './src/pages/home-page';
+
 
 
 const Stack = createStackNavigator();
