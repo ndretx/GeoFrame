@@ -27,7 +27,19 @@ export default function HomePage({ navigation }) {
 
   async function getPlaces() {
     return onValue(ref(db, '/places'), (snapshot) => {
-        console.log("dados do realtime", snapshot);
+      try {
+        setMarkers([]);
+        if (snapshot !== undefined) {
+          snapshot.forEach((childSnapshot) => {
+            const childkey = childSnapshot.key;
+            let childValue = childSnapshot.val();
+            childValue.id = childkey;
+            setMarkers((markers) => [...markers, (childValue as MarkerEntity)])
+          });
+        }
+      } catch (e) {
+        console.log(e);
+      }
     });
   }
 
@@ -50,10 +62,13 @@ export default function HomePage({ navigation }) {
       });
 
       const userMarker = new MarkerEntity();
-      userMarker.id = "user_location";
+      userMarker.id = `marker_${Math.random().toString()}`;
+      userMarker.imagePath = photo.uri;
       userMarker.coords = { latitude, longitude };
-      userMarker.description = "User's Location";
+      userMarker.description = "";
       userMarker.photoDate = Date.now().toString();
+      userMarker.title = "";
+
 
       setMarkers([userMarker]);
       setSelectedMarker(userMarker);
@@ -78,6 +93,7 @@ export default function HomePage({ navigation }) {
       newMarker.coords = { latitude, longitude };
       newMarker.description = "";
       newMarker.photoDate = Date.now().toString();
+      newMarker.title = "";
 
       setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
       setSelectedMarker(newMarker);
@@ -134,10 +150,10 @@ export default function HomePage({ navigation }) {
 
     const markerIcon =
       marker.id === "user_location" ? (
-        <FontAwesome5 name="map-marker-alt" size={24 + zoomLevel * 0.5} color="red" />
+        <FontAwesome5 name="map-marker-alt" size={12 + zoomLevel * 0.5} color="red" />
       ) : (
         <View>
-          <Feather name="map-pin" size={24 + zoomLevel * 0.5} color="black" />
+          {/* <Feather name="map-pin" size={12 + zoomLevel * 0.5} color="black" /> */}
           {marker.imagePath && <Image style={styles.markerImage} source={{ uri: marker.imagePath }} />}
         </View>
       );
@@ -218,8 +234,8 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   markerPoint: {
-    width: 100,
-    height: 100,
+    width: 150,
+    height: 150,
     borderRadius: 50,
   },
 
@@ -268,9 +284,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   markerImage: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     borderColor: "white",
     borderWidth: 1,
   },
