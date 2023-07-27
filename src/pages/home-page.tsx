@@ -5,9 +5,9 @@ import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import * as MediaLibrary from "expo-media-library";
 import MarkerEntity from "../entity/marker-entity";
-import { db } from "../../firebase-config";
-import { onValue, ref } from "firebase/database";
-
+import { app, db } from "../../firebase-config";
+import { onValue, push, ref } from "firebase/database";
+import * as firebaseStorage from "@firebase/storage";
 
 export default function HomePage({ navigation }) {
   const [initialRegion, setInitialRegion] = useState(null);
@@ -19,6 +19,7 @@ export default function HomePage({ navigation }) {
   const [location, setLocation] = useState(null);
   const mapRef = useRef(null);
   const [zoomLevel, setZoomLevel] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     getCurrentLocation();
@@ -63,12 +64,11 @@ export default function HomePage({ navigation }) {
 
       const userMarker = new MarkerEntity();
       userMarker.id = `marker_${Math.random().toString()}`;
-      userMarker.imagePath = photo.uri;
+      userMarker.imagePath = capturedPhoto;
       userMarker.coords = { latitude, longitude };
       userMarker.description = "";
       userMarker.photoDate = Date.now().toString();
       userMarker.title = "";
-
 
       setMarkers([userMarker]);
       setSelectedMarker(userMarker);
@@ -95,15 +95,50 @@ export default function HomePage({ navigation }) {
       newMarker.photoDate = Date.now().toString();
       newMarker.title = "";
 
-      setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
-      setSelectedMarker(newMarker);
-      setCapturedPhoto(photo);
-      setShowDetailsCard(true);
-      navigation.goBack();
+      setIsUploading(true);
+
+      console.log(newMarker, "marker sendo salvo no banco de dados")
+
+      try {
+        // Upload the image and get the uploaded URL
+        const uploadedImageUrl = await uploadImage(photo.uri);
+        console.log(uploadedImageUrl, "image uploaded");
+        newMarker.imagePath = uploadedImageUrl; // Set the imagePath to the uploaded URL
+        push(ref(db, 'places'), newMarker);
+
+        // Add the new marker to the markers state
+        setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
+        setSelectedMarker(newMarker);
+        setCapturedPhoto(photo);
+        setShowDetailsCard(true);
+        navigation.goBack();
+      } catch (error) {
+        console.error("Error uploading image:", error);
+      } finally {
+        setIsUploading(false); // Set isUploading back to false after the upload (success or failure)
+      }
     } else {
       console.log("Location not available.");
     }
   };
+
+  async function uploadImage(imageUrl): Promise<string> {
+    setIsUploading(true);
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+
+    const storage = firebaseStorage.getStorage(app);
+    const storageRef = firebaseStorage.ref(
+      storage,
+      'images/' + imageUrl.replace(/^.*[\\\/]/, '')
+    );
+    const upload = await firebaseStorage.uploadBytes(storageRef, blob);
+
+    const uploadedImageUrl = await firebaseStorage.getDownloadURL(storageRef);
+    console.log(uploadedImageUrl);
+    setIsUploading(false);
+    return uploadedImageUrl;
+  }
 
   const handleMarkerClick = (marker) => {
     setSelectedMarker(marker);
@@ -124,7 +159,7 @@ export default function HomePage({ navigation }) {
     setSelectedMarker(null);
     setShowDetailsCard(false);
   };
-
+  
   const handleDeleteDescription = () => {
     // Reseta a descrição no estado do selectedMarker para uma string vazia (ou null)
     setSelectedMarker((prevMarker) => ({
@@ -208,11 +243,24 @@ export default function HomePage({ navigation }) {
         </MapView>
       )}
       <View style={styles.buttonContainer}>
+        {isUploading ?
+          <View style={{
+            width: '100%', height: '100%',
+            backgroundColor: 'black', opacity: 0.8,
+            justifyContent: 'center', alignItems: 'center'
+          }}>
+            <Image style={{ width: 100, height: 80 }}
+              source={{ uri: 'https://gifs.eco.br/wp-content/uploads/2021/08/imagens-e-gifs-de-loading-0.gif' }} />
+            <Text style={{ color: "white" }}> Aguarde...</Text>
+          </View> : <></>
+        }
         <TouchableHighlight
           onPress={() => {
             navigation.navigate("CameraComponent", {
               registrarLocal: (cameraRef) => handleCameraButtonClick(cameraRef),
+
             });
+
           }}
           activeOpacity={0.5}
           underlayColor="#009688"
@@ -290,4 +338,5 @@ const styles = StyleSheet.create({
     borderColor: "white",
     borderWidth: 1,
   },
+  uploadView: {},
 });
