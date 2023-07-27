@@ -6,18 +6,22 @@ import * as MediaLibrary from "expo-media-library"
 
 
 
-export default function CameraComponent({ route}) {
+export default function CameraComponent({ route }) {
   const cameraRef = useRef(null);
 
   useEffect(() => {
-    
+
     MediaLibrary.requestPermissionsAsync()
-   
+
   }, []);
+
+
+
 
   return (
     <View style={styles.container}>
       <Camera style={styles.camera} ref={cameraRef}>
+       
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.button} onPress={() => {
             if (cameraRef.current) {
