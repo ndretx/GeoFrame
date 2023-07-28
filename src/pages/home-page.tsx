@@ -6,7 +6,7 @@ import * as Location from "expo-location";
 import * as MediaLibrary from "expo-media-library";
 import MarkerEntity from "../entity/marker-entity";
 import { app, db } from "../../firebase-config";
-import { onValue, push, ref } from "firebase/database";
+import { onValue, push, ref, update } from "firebase/database";
 import * as firebaseStorage from "@firebase/storage";
 
 export default function HomePage({ navigation }) {
@@ -15,7 +15,7 @@ export default function HomePage({ navigation }) {
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [descriptionInput, setDescriptionInput] = useState("");
   const [markers, setMarkers] = useState([]);
-  const [showDetailsCard, setShowDetailsCard] = useState(false);
+  const [showDetailsCard, setShowDetailsCard] = useState(null);
   const [location, setLocation] = useState(null);
   const mapRef = useRef(null);
   const [zoomLevel, setZoomLevel] = useState(0);
@@ -23,6 +23,7 @@ export default function HomePage({ navigation }) {
 
   useEffect(() => {
     getCurrentLocation();
+    console.log(getCurrentLocation(),'localizaçao')
     getPlaces();
   }, []);
 
@@ -153,12 +154,19 @@ export default function HomePage({ navigation }) {
     }));
   };
 
-  const handleSaveDescription = () => {
-    // Reservado para gravar no banco de dados
-    setDescriptionInput("");
-    setSelectedMarker(null);
-    setShowDetailsCard(false);
-  };
+  
+  async function updateItem() {
+    location.selectedMarker.description = descriptionInput;
+    update(ref(db, '/places/' + location.currentPlace.id), location.selectedMarker);
+    setShowDetailsCard({ showDetailsCard: false });
+    setDescriptionInput('');
+} 
+    
+    
+    // setDescriptionInput("");
+    // setSelectedMarker(null);
+    // setShowDetailsCard(false);
+  
   
   const handleDeleteDescription = () => {
     // Reseta a descrição no estado do selectedMarker para uma string vazia (ou null)
@@ -221,7 +229,7 @@ export default function HomePage({ navigation }) {
           onChangeText={handleDescriptionChange}
         />
       </View>
-      <TouchableHighlight onPress={handleSaveDescription} style={styles.button}>
+      <TouchableHighlight onPress={updateItem} style={styles.button}>
         <Text style={styles.buttonText}>Save</Text>
       </TouchableHighlight>
       <TouchableHighlight onPress={handleDeleteDescription} style={styles.button}>
@@ -338,5 +346,5 @@ const styles = StyleSheet.create({
     borderColor: "white",
     borderWidth: 1,
   },
-  uploadView: {},
+  
 });
