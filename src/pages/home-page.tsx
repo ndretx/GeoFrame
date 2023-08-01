@@ -82,12 +82,12 @@ export default function HomePage({ navigation }) {
     console.log("chegou aqui");
     await getCurrentLocation();
     console.log(location);
-
+  
     if (location && location.coords) {
       const { latitude, longitude } = location.coords;
       const photo = await cameraRef.current.takePictureAsync();
       await MediaLibrary.saveToLibraryAsync(photo.uri);
-
+  
       const newMarker = new MarkerEntity();
       newMarker.id = `marker_${Math.random().toString()}`;
       newMarker.imagePath = photo.uri;
@@ -95,18 +95,18 @@ export default function HomePage({ navigation }) {
       newMarker.description = "";
       newMarker.photoDate = Date.now().toString();
       newMarker.title = "";
-
+  
       setIsUploading(true);
-
-      console.log(newMarker, "marker sendo salvo no banco de dados")
-
+  
+      console.log(newMarker, "marker sendo salvo no banco de dados");
+  
       try {
         // Upload the image and get the uploaded URL
         const uploadedImageUrl = await uploadImage(photo.uri);
         console.log(uploadedImageUrl, "image uploaded");
         newMarker.imagePath = uploadedImageUrl; // Set the imagePath to the uploaded URL
-        push(ref(db, 'places'), newMarker);
-
+        push(ref(db, "places"), newMarker);
+  
         // Add the new marker to the markers state
         setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
         setSelectedMarker(newMarker);
@@ -122,6 +122,7 @@ export default function HomePage({ navigation }) {
       console.log("Location not available.");
     }
   };
+  
 
   async function uploadImage(imageUrl): Promise<string> {
     setIsUploading(true);
@@ -146,20 +147,33 @@ export default function HomePage({ navigation }) {
     setShowDetailsCard(true);
   };
 
-  const handleDescriptionChange = (text) => {
-    setDescriptionInput(text);
-    setSelectedMarker((prevMarker) => ({
-      ...prevMarker,
-      description: text,
-    }));
+  const handleDescriptionChange = async (text) => {
+    try {
+      // Removendo caracteres indesejados da descrição
+      const cleanedDescription = text.replace(/^.*[\\\/]/, '');
+  
+      // Atualizando o estado da descrição de entrada
+      setDescriptionInput(cleanedDescription);
+  
+      // Atualizando o marcador selecionado com a descrição limpa
+      await setSelectedMarker((prevMarker) => ({
+        ...prevMarker,
+        description: cleanedDescription,
+      }));
+    } catch (error) {
+      console.error("Error occurred:", error);
+      // Aqui você pode realizar alguma ação específica em caso de erro, se necessário.
+    }
   };
+  
 
   
   async function updateItem() {
-    location.selectedMarker.description = descriptionInput;
-    update(ref(db, '/places/' + location.currentPlace.id), location.selectedMarker);
+    selectedMarker.description = descriptionInput;
+    update(ref(db, '/places/' +  selectedMarker.id), selectedMarker);
     setShowDetailsCard({ showDetailsCard: false });
     setDescriptionInput('');
+    
 } 
     
     
@@ -169,7 +183,7 @@ export default function HomePage({ navigation }) {
   
   
   async function removeItem() {
-    remove(ref(db, '/places/' + location.currentPlace.id));
+    remove(ref(db, '/places/' + selectedMarker.id));
     setShowDetailsCard(false);
     setSelectedMarker(null);
   }
@@ -255,22 +269,26 @@ export default function HomePage({ navigation }) {
           initialRegion={initialRegion}
           ref={mapRef}
           onRegionChangeComplete={handleRegionChangeComplete}
+              onPress={() => {
+            setSelectedMarker(null);
+            setShowDetailsCard(false);
+          }}
         >
           {markers.map(renderMarker)}
         </MapView>
       )}
       <View style={styles.buttonContainer}>
-        {isUploading ?
+        {isUploading  && (
           <View style={{
             width: '100%', height: '100%',
             backgroundColor: 'black', opacity: 0.8,
             justifyContent: 'center', alignItems: 'center'
           }}>
-            <Image style={{ width: 100, height: 80 }}
+            <Image style={{ width: "100%", height: "80%" }}
               source={{ uri: 'https://gifs.eco.br/wp-content/uploads/2021/08/imagens-e-gifs-de-loading-0.gif' }} />
             <Text style={{ color: "white" }}> Aguarde...</Text>
-          </View> : <></>
-        }
+          </View> 
+                  )}
         <TouchableHighlight
           onPress={() => {
             navigation.navigate("CameraComponent", {
@@ -355,5 +373,6 @@ const styles = StyleSheet.create({
     borderColor: "white",
     borderWidth: 1,
   },
+  
   
 });

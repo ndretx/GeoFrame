@@ -25,6 +25,8 @@
           "CAMERA",
           "READ_EXTERNAL_STORAGE",
           "WRITE_EXTERNAL_STORAGE",
+          "CAMERA_ROLL",
+          "LOCATION",
           "locationAlwaysAndWhenInUsePermission",
           "photosPermission",
           "savePhotosPermission"

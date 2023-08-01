@@ -2,32 +2,48 @@ import React, { useRef, useEffect, useState } from "react";
 import { TouchableOpacity, View, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
-import * as MediaLibrary from "expo-media-library"
-
-
+import * as MediaLibrary from "expo-media-library";
 
 export default function CameraComponent({ route }) {
   const cameraRef = useRef(null);
+  const [isCameraReady, setCameraReady] = useState(false);
 
   useEffect(() => {
-
-    MediaLibrary.requestPermissionsAsync()
-
+    // Check camera permissions and request if not granted
+    (async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        alert("Camera permission required to use the camera.");
+      }
+    })();
   }, []);
 
+  const handleCameraReady = () => {
+    setCameraReady(true);
+  };
 
+  const takePicture = async () => {
+    if (!isCameraReady) {
+      console.log("Camera is not ready.");
+      return;
+    }
 
+    if (cameraRef.current) {
+      try {
+        const photo = await cameraRef.current.takePictureAsync();
+        await MediaLibrary.saveToLibraryAsync(photo.uri);
+        route.params.registrarLocal(cameraRef);
+      } catch (error) {
+        console.error("Error taking picture:", error);
+      }
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <Camera style={styles.camera} ref={cameraRef}>
-       
+      <Camera style={styles.camera} ref={cameraRef} onCameraReady={handleCameraReady}>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={() => {
-            if (cameraRef.current) {
-              route.params.registrarLocal(cameraRef)
-            }
-          }}>
+          <TouchableOpacity style={styles.button} onPress={takePicture}>
             <Feather name="camera" size={50} color="#009688" />
           </TouchableOpacity>
         </View>
@@ -45,6 +61,7 @@ const styles = StyleSheet.create({
   },
   camera: {
     flex: 1,
+    justifyContent: "center",
   },
   buttonContainer: {
     position: "absolute",
