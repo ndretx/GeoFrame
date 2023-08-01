@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { View, StyleSheet, TouchableHighlight, Image, Text, TextInput } from "react-native";
+import { View, StyleSheet, TouchableHighlight, Image, Text, TextInput, Alert } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import * as MediaLibrary from "expo-media-library";
 import MarkerEntity from "../entity/marker-entity";
 import { app, db } from "../../firebase-config";
-import { onValue, push, ref, update } from "firebase/database";
+import { onValue, push, ref, remove, update } from "firebase/database";
 import * as firebaseStorage from "@firebase/storage";
 
 export default function HomePage({ navigation }) {
@@ -168,16 +168,25 @@ export default function HomePage({ navigation }) {
     // setShowDetailsCard(false);
   
   
-  const handleDeleteDescription = () => {
-    // Reseta a descrição no estado do selectedMarker para uma string vazia (ou null)
-    setSelectedMarker((prevMarker) => ({
-      ...prevMarker,
-      description: "",
-    }));
+  async function removeItem() {
+    remove(ref(db, '/places/' + location.currentPlace.id));
+    setShowDetailsCard(false);
+    setSelectedMarker(null);
+  }
+  function showConfirmDialog(){
+    return Alert.alert(
+      "Deseja remover o local?",
+      "Essa ação não poderá ser desfeita",
+    
+    [
+      {  text: "Sim ",
+        onPress:() => removeItem(),
+      },
+      { text: "Não",}
 
-    // Lógica para persistir a exclusão no backend (se necessário)
-    // Aqui você pode fazer uma chamada para sua API de backend para atualizar o registro do selectedMarker no banco de dados.
-  };
+    ]
+    )
+  }
 
   // Atualiza ZoomLevel
   const handleRegionChangeComplete = useCallback((region) => {
@@ -232,7 +241,7 @@ export default function HomePage({ navigation }) {
       <TouchableHighlight onPress={updateItem} style={styles.button}>
         <Text style={styles.buttonText}>Save</Text>
       </TouchableHighlight>
-      <TouchableHighlight onPress={handleDeleteDescription} style={styles.button}>
+      <TouchableHighlight onPress={showConfirmDialog} style={styles.button}>
         <Text style={styles.buttonText}>Delete</Text>
       </TouchableHighlight>
     </View>
