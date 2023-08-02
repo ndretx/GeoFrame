@@ -23,7 +23,6 @@ export default function HomePage({ navigation }) {
 
   useEffect(() => {
     getCurrentLocation();
-    console.log(getCurrentLocation(),'localizaçao')
     getPlaces();
   }, []);
 
@@ -82,12 +81,12 @@ export default function HomePage({ navigation }) {
     console.log("chegou aqui");
     await getCurrentLocation();
     console.log(location);
-  
+
     if (location && location.coords) {
       const { latitude, longitude } = location.coords;
       const photo = await cameraRef.current.takePictureAsync();
       await MediaLibrary.saveToLibraryAsync(photo.uri);
-  
+
       const newMarker = new MarkerEntity();
       newMarker.id = `marker_${Math.random().toString()}`;
       newMarker.imagePath = photo.uri;
@@ -95,19 +94,16 @@ export default function HomePage({ navigation }) {
       newMarker.description = "";
       newMarker.photoDate = Date.now().toString();
       newMarker.title = "";
-  
+
       setIsUploading(true);
-  
       console.log(newMarker, "marker sendo salvo no banco de dados");
-  
       try {
-        // Upload the image and get the uploaded URL
         const uploadedImageUrl = await uploadImage(photo.uri);
         console.log(uploadedImageUrl, "image uploaded");
-        newMarker.imagePath = uploadedImageUrl; // Set the imagePath to the uploaded URL
+        newMarker.imagePath = uploadedImageUrl; 
         push(ref(db, "places"), newMarker);
-  
-        // Add the new marker to the markers state
+
+        
         setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
         setSelectedMarker(newMarker);
         setCapturedPhoto(photo);
@@ -116,14 +112,12 @@ export default function HomePage({ navigation }) {
       } catch (error) {
         console.error("Error uploading image:", error);
       } finally {
-        setIsUploading(false); // Set isUploading back to false after the upload (success or failure)
+        setIsUploading(false); 
       }
     } else {
       console.log("Location not available.");
     }
   };
-  
-
   async function uploadImage(imageUrl): Promise<string> {
     setIsUploading(true);
     const response = await fetch(imageUrl);
@@ -135,70 +129,52 @@ export default function HomePage({ navigation }) {
       'images/' + imageUrl.replace(/^.*[\\\/]/, '')
     );
     const upload = await firebaseStorage.uploadBytes(storageRef, blob);
-
     const uploadedImageUrl = await firebaseStorage.getDownloadURL(storageRef);
     console.log(uploadedImageUrl);
     setIsUploading(false);
     return uploadedImageUrl;
   }
-
   const handleMarkerClick = (marker) => {
     setSelectedMarker(marker);
     setShowDetailsCard(true);
   };
-
   const handleDescriptionChange = async (text) => {
     try {
-      // Removendo caracteres indesejados da descrição
       const cleanedDescription = text.replace(/^.*[\\\/]/, '');
-  
-      // Atualizando o estado da descrição de entrada
       setDescriptionInput(cleanedDescription);
-  
-      // Atualizando o marcador selecionado com a descrição limpa
-      await setSelectedMarker((prevMarker) => ({
+      setSelectedMarker((prevMarker) => ({
         ...prevMarker,
         description: cleanedDescription,
       }));
     } catch (error) {
       console.error("Error occurred:", error);
-      // Aqui você pode realizar alguma ação específica em caso de erro, se necessário.
+     
     }
   };
-  
-
-  
   async function updateItem() {
     selectedMarker.description = descriptionInput;
-    update(ref(db, '/places/' +  selectedMarker.id), selectedMarker);
+    update(ref(db, '/places/' + selectedMarker.id), selectedMarker);
     setShowDetailsCard({ showDetailsCard: false });
     setDescriptionInput('');
-    
-} 
-    
-    
-    // setDescriptionInput("");
-    // setSelectedMarker(null);
-    // setShowDetailsCard(false);
-  
-  
+
+  }
   async function removeItem() {
     remove(ref(db, '/places/' + selectedMarker.id));
     setShowDetailsCard(false);
     setSelectedMarker(null);
   }
-  function showConfirmDialog(){
+  function showConfirmDialog() {
     return Alert.alert(
       "Deseja remover o local?",
       "Essa ação não poderá ser desfeita",
-    
-    [
-      {  text: "Sim ",
-        onPress:() => removeItem(),
-      },
-      { text: "Não",}
+      [
+        {
+          text: "Sim ",
+          onPress: () => removeItem(),
+        },
+        { text: "Não", }
 
-    ]
+      ]
     )
   }
 
@@ -238,7 +214,6 @@ export default function HomePage({ navigation }) {
       </Marker>
     );
   };
-
   const renderCard = () => (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{selectedMarker?.description}</Text>
@@ -260,7 +235,6 @@ export default function HomePage({ navigation }) {
       </TouchableHighlight>
     </View>
   );
-
   return (
     <View style={styles.container}>
       {initialRegion && (
@@ -269,42 +243,38 @@ export default function HomePage({ navigation }) {
           initialRegion={initialRegion}
           ref={mapRef}
           onRegionChangeComplete={handleRegionChangeComplete}
-              onPress={() => {
+          onPress={() => {
             setSelectedMarker(null);
             setShowDetailsCard(false);
-          }}
-        >
+          }}>
           {markers.map(renderMarker)}
         </MapView>
       )}
       <View style={styles.buttonContainer}>
-        {isUploading  && (
+        {isUploading ?
           <View style={{
             width: '100%', height: '100%',
             backgroundColor: 'black', opacity: 0.8,
-            justifyContent: 'center', alignItems: 'center'
-          }}>
+            justifyContent: 'center', alignItems: 'center'}}>
             <Image style={{ width: "100%", height: "80%" }}
               source={{ uri: 'https://gifs.eco.br/wp-content/uploads/2021/08/imagens-e-gifs-de-loading-0.gif' }} />
             <Text style={{ color: "white" }}> Aguarde...</Text>
-          </View> 
-                  )}
+          </View>
+          :
+          <></>
+        }
         <TouchableHighlight
           onPress={() => {
             navigation.navigate("CameraComponent", {
               registrarLocal: (cameraRef) => handleCameraButtonClick(cameraRef),
-
             });
-
           }}
           activeOpacity={0.5}
           underlayColor="#009688"
-          style={styles.button}
-        >
+          style={styles.button}>
           <Feather name="camera" size={24} color="#009688" />
         </TouchableHighlight>
       </View>
-
       {showDetailsCard && selectedMarker && renderCard()}
     </View>
   );
@@ -321,7 +291,6 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 50,
   },
-
   buttonContainer: {
     position: "absolute",
     bottom: 100,
@@ -373,6 +342,6 @@ const styles = StyleSheet.create({
     borderColor: "white",
     borderWidth: 1,
   },
-  
-  
+
+
 });
