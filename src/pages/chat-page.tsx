@@ -5,8 +5,6 @@ export default function chatPage({navigation, route}) {
     useEffect(() => {
 
 
-
-
     }, [])
 
 

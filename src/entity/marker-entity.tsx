@@ -6,6 +6,6 @@ export default class MarkerEntity{
     coords: { latitude: number, longitude: number}
     description: string;
     photoDate: string;
-
+    author: string;
     
 }
