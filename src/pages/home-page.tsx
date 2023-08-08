@@ -2,12 +2,17 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { View, StyleSheet, TouchableHighlight, Image, Text, TextInput, Alert } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
+
 import * as Location from "expo-location";
 import * as MediaLibrary from "expo-media-library";
 import MarkerEntity from "../entity/marker-entity";
 import { app, db } from "../../firebase-config";
 import { onValue, push, ref, remove, update } from "firebase/database";
 import * as firebaseStorage from "@firebase/storage";
+import { getStoredData } from "../shared/secure-store-service";
+import {  timeFormatBR } from "../utils/time-format";
+import { v4 as uuidv4 } from "uuid";
+import { formatId } from "../utils/id-formats";
 
 export default function HomePage({ navigation }) {
   const [initialRegion, setInitialRegion] = useState(null);
@@ -67,8 +72,9 @@ export default function HomePage({ navigation }) {
       userMarker.imagePath = capturedPhoto;
       userMarker.coords = { latitude, longitude };
       userMarker.description = "";
-      userMarker.photoDate = Date.now().toString();
+      userMarker.photoDate = timeFormatBR(new Date ());
       userMarker.title = "";
+      userMarker.author = await getStoredData('author')
 
       setMarkers([userMarker]);
       setSelectedMarker(userMarker);
@@ -78,46 +84,48 @@ export default function HomePage({ navigation }) {
   }, []);
 
   const handleCameraButtonClick = async (cameraRef) => {
-    console.log("chegou aqui");
     await getCurrentLocation();
-    console.log(location);
-
-    if (location && location.coords) {
-      const { latitude, longitude } = location.coords;
-      const photo = await cameraRef.current.takePictureAsync();
-      await MediaLibrary.saveToLibraryAsync(photo.uri);
-
-      const newMarker = new MarkerEntity();
-      newMarker.id = `marker_${Math.random().toString()}`;
-      newMarker.imagePath = photo.uri;
-      newMarker.coords = { latitude, longitude };
-      newMarker.description = "";
-      newMarker.photoDate = Date.now().toString();
-      newMarker.title = "";
-
-      setIsUploading(true);
-      console.log(newMarker, "marker sendo salvo no banco de dados");
-      try {
-        const uploadedImageUrl = await uploadImage(photo.uri);
-        console.log(uploadedImageUrl, "image uploaded");
-        newMarker.imagePath = uploadedImageUrl; 
-        push(ref(db, "places"), newMarker);
-
-        
-        setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
-        setSelectedMarker(newMarker);
-        setCapturedPhoto(photo);
-        setShowDetailsCard(true);
-        navigation.goBack();
-      } catch (error) {
-        console.error("Error uploading image:", error);
-      } finally {
-        setIsUploading(false); 
-      }
-    } else {
+  
+    if (!location || !location.coords) {
       console.log("Location not available.");
+      return;
+    }
+  
+    const { latitude, longitude } = location.coords;
+    const photo = await cameraRef.current.takePictureAsync();
+    await MediaLibrary.saveToLibraryAsync(photo.uri);
+  
+    const newMarker = {
+      id: `marker_${formatId(uuidv4())}`,
+      imagePath: await uploadImage(photo.uri),
+      coords: { latitude, longitude },
+      description: "",
+      photoDate: timeFormatBR(new Date()),
+      title: "",
+      author: await getStoredData('author'),
+    };
+  
+    setIsUploading(true);
+    console.log(newMarker, "marker being saved in the database");
+  
+    try {
+      const uploadedImageUrl = await uploadImage(photo.uri);
+      console.log(uploadedImageUrl, "image uploaded");
+      newMarker.imagePath = uploadedImageUrl;
+      push(ref(db, "places"), newMarker);
+  
+      setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
+      setSelectedMarker(newMarker);
+      setCapturedPhoto(photo);
+      setShowDetailsCard(true);
+      navigation.goBack();
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    } finally {
+      setIsUploading(false);
     }
   };
+  
   async function uploadImage(imageUrl): Promise<string> {
     setIsUploading(true);
     const response = await fetch(imageUrl);
@@ -148,7 +156,9 @@ export default function HomePage({ navigation }) {
       }));
     } catch (error) {
       console.error("Error occurred:", error);
-     
+
+    }finally {
+      setShowDetailsCard(false); // Fechar o card automaticamente
     }
   };
   async function updateItem() {
@@ -156,6 +166,7 @@ export default function HomePage({ navigation }) {
     update(ref(db, '/places/' + selectedMarker.id), selectedMarker);
     setShowDetailsCard({ showDetailsCard: false });
     setDescriptionInput('');
+    setShowDetailsCard(false);
 
   }
   async function removeItem() {
@@ -170,7 +181,8 @@ export default function HomePage({ navigation }) {
       [
         {
           text: "Sim ",
-          onPress: () => removeItem(),
+          onPress: () => {removeItem();
+          setShowDetailsCard(false)}
         },
         { text: "Não", }
 
@@ -187,33 +199,21 @@ export default function HomePage({ navigation }) {
     }
   }, []);
 
-  const renderMarker = (marker) => {
-    const isSelectedMarker = selectedMarker?.id === marker.id;
-
-    const markerIcon =
-      marker.id === "user_location" ? (
-        <FontAwesome5 name="map-marker-alt" size={12 + zoomLevel * 0.5} color="red" />
+  const renderMarker = (marker) => (
+    <Marker
+      key={marker.id}
+      description={marker.description}
+      coordinate={marker.coords}
+      onPress={() => handleMarkerClick(marker)}
+    >
+      {marker.id === "user_location" ? (
+        <FontAwesome5 icon={locationbar} size={12 + zoomLevel * 0.5} color="black" />
       ) : (
-        <View>
-          {/* <Feather name="map-pin" size={12 + zoomLevel * 0.5} color="black" /> */}
-          {marker.imagePath && <Image style={styles.markerImage} source={{ uri: marker.imagePath }} />}
-        </View>
-      );
-
-    return (
-      <Marker
-        key={marker.id}
-        description={marker.description}
-        coordinate={{
-          latitude: marker.coords.latitude,
-          longitude: marker.coords.longitude,
-        }}
-        onPress={() => handleMarkerClick(marker)}
-      >
-        {markerIcon}
-      </Marker>
-    );
-  };
+        marker.imagePath && <Image style={styles.markerImage} source={{ uri: marker.imagePath }} />
+      )}
+    </Marker>
+  );
+  
   const renderCard = () => (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{selectedMarker?.description}</Text>
@@ -233,6 +233,20 @@ export default function HomePage({ navigation }) {
       <TouchableHighlight onPress={showConfirmDialog} style={styles.button}>
         <Text style={styles.buttonText}>Delete</Text>
       </TouchableHighlight>
+      <View style={{
+      
+      }}>
+        <TouchableHighlight onPress={()=>{
+          navigation.navigate('chat', {markers : selectedMarker} )
+        }} style={styles.button}>
+          <Text style={styles.buttonText}>ZAP</Text>
+        </TouchableHighlight>
+
+      </View>
+      <View style={{ width: "100%", marginBottom: 16 }}>
+        <Text> Data: {selectedMarker.photoDate}</Text>
+        <Text> Autor: {selectedMarker.author}</Text>
+      </View>
     </View>
   );
   return (
@@ -255,7 +269,8 @@ export default function HomePage({ navigation }) {
           <View style={{
             width: '100%', height: '100%',
             backgroundColor: 'black', opacity: 0.8,
-            justifyContent: 'center', alignItems: 'center'}}>
+            justifyContent: 'center', alignItems: 'center'
+          }}>
             <Image style={{ width: "100%", height: "80%" }}
               source={{ uri: 'https://gifs.eco.br/wp-content/uploads/2021/08/imagens-e-gifs-de-loading-0.gif' }} />
             <Text style={{ color: "white" }}> Aguarde...</Text>

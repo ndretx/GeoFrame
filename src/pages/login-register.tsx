@@ -1,53 +1,51 @@
-import { View, Image, Button, TextInput, Text, StyleSheet } from "react-native";
-import * as SecureStore from 'expo-secure-store';
-import React from "react";
+import { View, Image, Button, TextInput, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
+import React, { useEffect } from "react";
+import { useState } from "react";
+import { getStoredData, setStoredData } from "../shared/secure-store-service";
 
-async function save(key, value) {
-  await SecureStore.setItemAsync(key, value);
-}
+export default function LoginPage({ navigation }) {
+  const [author, setAuthor ] = useState ("");
 
-async function getValueFor(key) {
-  let result = await SecureStore.getItemAsync(key);
-  return result; 
-}
+  useEffect(() => {
+    getAuthor();
+   
+  }, [])
+  
 
-export default function LoginRegister({ navigation }) {
-  const [key, onChangeKey] = React.useState('Your key here');
-  const [value, onChangeValue] = React.useState('Your value here');
-
-  async function handleLogin() {
-    const savedValue = await getValueFor(key);
-    if (savedValue) {
-      navigation.navigate('HomePage');
-    } else {
-      save(key, value);
-      navigation.navigate('HomePage');
-    }
+async function getAuthor(){
+  const localAuthor = await getStoredData('author');
+  if(localAuthor){
+    navigation.navigate('HomePage')
   }
+}
+
+  function login(){
+    setStoredData('author', author);
+    navigation.navigate('HomePage')
+
+  }
+  
+
 
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <Image source={require("./assets/icon.png")} style={{ width: 100, height: 100 }} />
+        <Image source={require("../../assets/image/icon.png")} style={{ width: 200, height: 200 }} />
         <Text style={styles.title}> GeoFrame</Text>
       </View>
       <View style={styles.containerButton}>
         <TextInput
+          onChangeText={setAuthor}
+          value={author}
           style={styles.textInput}
           placeholder='Digite seu nome'
-          value={key}
-          onChangeText={onChangeKey}
-          onSubmitEditing={handleLogin} 
         />
-        <Button
-          color="#009788"
-          title="Login"
-          onPress={() => {
-            save(key, value);
-            onChangeKey('Your key here');
-            onChangeValue('Your value here');
-          }}
-        />
+           <TouchableOpacity
+        style={styles.customButton}
+        onPress={login}
+      >
+        <Text style={styles.buttonText}>Login</Text>
+      </TouchableOpacity>
       </View>
     </View>
   );
@@ -62,29 +60,44 @@ const styles = StyleSheet.create({
     backgroundColor: "#485865"
   },
   title: {
-    justifyContent: "center",
+    flex: 1,
+    justifyContent: "space-between",
+    alignItems: "center",
     fontSize: 20,
     color: "white",
-    padding: 50
+    padding: 50,
+    fontFamily: 'SpaceGrotesk-Bold'
   },
   headerContainer: {
+    flex: 1,
     alignItems: 'center',
     paddingTop: 100,
     justifyContent: 'space-between'
   },
   containerButton: {
-    justifyContent: "space-between",
-    padding: 16,
-    margin: 16,
+    width: '100%',
+    justifyContent: 'space-around',  
+  },
+  customButton: {
+    borderRadius: 12,
+    marginBottom: 32,
+    padding: 8,
+    backgroundColor: '#009788',
+    elevation: Platform.OS === 'android' ? 2 : 0,
+  },
+  buttonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 'bold',
+    
   },
   textInput: {
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "white",
-    width: "100%",
-    marginBottom: 10,
+    borderRadius: 12,
+    marginBottom: 32,
+    padding: 8,
     color: "white",
-    backgroundColor: "#009788"
-
+    backgroundColor: "#009788",
+    elevation: Platform.OS === 'android' ? 2 : 0,
   },
 });
