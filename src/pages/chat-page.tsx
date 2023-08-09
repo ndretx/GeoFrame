@@ -41,7 +41,7 @@ export default function ChatPage({ navigation, route }) {
             sender: author
         }
 
-        push(ref(db, `/messages/${route.params.marker.id}`), newMessage)
+        push(ref(db, `/messages/${route.params.markers.id}`), newMessage)
         setMessage("")
 
     }
@@ -156,7 +156,7 @@ export default function ChatPage({ navigation, route }) {
                     }}
                 />
                 <TouchableNativeFeedback onPress={sendMessage}>
-                    <Icon name="send" type="google" size={20} color="'#000"></Icon>
+                    <Icon name="send" type="google" size={25} color="black"></Icon>
                 </TouchableNativeFeedback>
 
             </View>
@@ -168,14 +168,15 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "transparent",
         justifyContent: 'flex-end',
-        alignItems: 'center',
-        padding: 16
+        alignItems: 'flex-start', 
+        padding: 16,
 
     },
     containerMessage: {
+        
         backgroundColor: 'trasparent',
-        justifyContent: 'flex-start',
-        width: '100%',
+        justifyContent: 'flex-end',
+        padding: 16, 
         marginVertical: 4
 
     },

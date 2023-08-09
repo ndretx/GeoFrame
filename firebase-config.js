@@ -2,13 +2,13 @@ import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDO9kHzrw44ZYFl2AuztdAOMtoO7pd8zCY",
-  authDomain: "dzsuperofertas.firebaseapp.com",
-  databaseURL: "https://dzsuperofertas.firebaseio.com",
-  projectId: "dzsuperofertas",
-  storageBucket: "dzsuperofertas.appspot.com",
-  messagingSenderId: "677084542092",
-  appId: "1:677084542092:web:131465c2fede9fff9637a9"
+  apiKey: "AIzaSyCDP4NsKjbh_6m66P3IhN9Z18x_bvwdM1w",
+  authDomain: "senaiteste-8eb47.firebaseapp.com",
+  databaseURL: "https://senaiteste-8eb47-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "senaiteste-8eb47",
+  storageBucket: "senaiteste-8eb47.appspot.com",
+  messagingSenderId: "1043580467574",
+  appId: "1:1043580467574:web:bc3f37a70c276c79176257"
 };
 
 const app = initializeApp(firebaseConfig);

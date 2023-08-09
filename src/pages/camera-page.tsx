@@ -8,15 +8,17 @@ export default function CameraComponent({ route }) {
   const cameraRef = useRef(null);
   const [isCameraReady, setCameraReady] = useState(false);
 
-  useEffect(() => {
-    // Check camera permissions and request if not granted
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      if (status !== "granted") {
-        alert("Camera permission required to use the camera.");
-      }
-    })();
-  }, []);
+useEffect(() => {
+  // Check camera and media library permissions and request if not granted
+  (async () => {
+    const cameraPermission = await Camera.requestCameraPermissionsAsync();
+    const mediaLibraryPermission = await MediaLibrary.requestPermissionsAsync();
+
+    if (cameraPermission.status !== "granted" || mediaLibraryPermission.status !== "granted") {
+      alert("Camera and media library permissions are required.");
+    }
+  })();
+}, []);
 
   const handleCameraReady = () => {
     setCameraReady(true);
