@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "white",
     padding: 50,
-    fontFamily: 'SpaceGrotesk-Bold'
+    
   },
   headerContainer: {
     flex: 1,
