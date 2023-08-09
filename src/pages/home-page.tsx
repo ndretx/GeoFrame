@@ -237,7 +237,7 @@ export default function HomePage({ navigation }) {
       
       }}>
         <TouchableHighlight onPress={()=>{
-          navigation.navigate('chat', {markers : selectedMarker} )
+          navigation.navigate('ChatPage', {markers : selectedMarker} )
         }} style={styles.button}>
           <Text style={styles.buttonText}>ZAP</Text>
         </TouchableHighlight>

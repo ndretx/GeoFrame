@@ -15,12 +15,18 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "ndretx.GeoFrame"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/image/adaptive-icon.png",
         "backgroundColor": "#ffffff",
+        "config": {
+          "googleMaps": {
+            "apiKey": "AIzaSyADU3bOiJGUeUU2_OHylHLwnM-Djo1UQGM"
+          }
+        },
         "permissions": [
           "CAMERA",
           "READ_EXTERNAL_STORAGE",
@@ -31,10 +37,16 @@
           "photosPermission",
           "savePhotosPermission"
         ]
-      }
+      },
+      "package": "ndretx.GeoFrame"
     },
     "web": {
       "favicon": "./assets/image/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a0cae348-34c6-4fc4-9d03-70757bca217e"
+      }
     }
   }
 }

@@ -9,7 +9,7 @@ import { getStoredData } from "../shared/secure-store-service";
 import { formatId } from "../utils/id-formats";
 import { timeFormatBR } from "../utils/time-format";
 
-export default function chatPage({ navigation, route }) {
+export default function ChatPage({ navigation, route }) {
     const [author, setAuthor] = useState('');
     const [messages, setMessages] = useState<chatEntity[]>([])
     const listRef = useRef(null);
