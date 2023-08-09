@@ -168,7 +168,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "transparent",
         justifyContent: 'flex-end',
-        alignItems: 'flex-start', 
         padding: 16,
 
     },
@@ -183,7 +182,7 @@ const styles = StyleSheet.create({
     reverseContainer: {
         backgroundColor: "transparent",
         justifyContent: 'flex-start',
-        alignItems: 'center',
+        
         padding: 16,
         width: '100%',
 
